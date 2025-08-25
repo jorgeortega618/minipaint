@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mini-Paint - Algoritmos de Línea</title>
+  <style>
+    :root { --bg:#0f172a; --panel:#111827; --ink:#e5e7eb; --muted:#94a3b8; --accent:#10b981; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; background:var(--bg); color:var(--ink); }
+    header { padding:16px 20px; background:linear-gradient(180deg,#0b1220,#0f172a); border-bottom:1px solid #0b1220; text-align:center; }
+    header h1 { margin:0 0 8px 0; font-size:24px; letter-spacing:.3px; font-weight:700; }
+    header p { margin:0; color:var(--muted); font-size:14px; }
+
+    .container { max-width:1200px; margin:0 auto; padding:40px 20px; }
+    .intro { text-align:center; margin-bottom:60px; }
+    .intro h2 { font-size:20px; margin:0 0 16px 0; color:var(--ink); }
+    .intro p { color:var(--muted); font-size:16px; line-height:1.6; max-width:600px; margin:0 auto; }
+
+    .algorithms { display:grid; grid-template-columns:repeat(auto-fit, minmax(350px, 1fr)); gap:24px; margin-bottom:40px; }
+    .card { background:var(--panel); border:1px solid #1f2937; border-radius:16px; padding:24px; transition:all 0.3s ease; }
+    .card:hover { border-color:#374151; transform:translateY(-2px); box-shadow:0 8px 25px rgba(0,0,0,0.3); }
+    
+    .card-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+    .card-number { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:14px; }
+    .card-title { font-size:18px; font-weight:600; margin:0; }
+
+    .card-basic .card-number { background:#0b2942; color:#38bdf8; }
+    .card-dda .card-number { background:#0b2a2f; color:#22d3ee; }
+    .card-bresenham .card-number { background:#271b55; color:#a78bfa; }
+
+    .card-description { color:var(--muted); font-size:14px; line-height:1.5; margin-bottom:20px; }
+    .card-features { list-style:none; padding:0; margin:0 0 20px 0; }
+    .card-features li { color:var(--muted); font-size:13px; margin-bottom:6px; padding-left:16px; position:relative; }
+    .card-features li::before { content:"•"; color:var(--accent); position:absolute; left:0; }
+
+    .card-button { display:inline-flex; align-items:center; gap:8px; padding:10px 16px; background:#0b1220; border:1px solid #1f2937; border-radius:10px; color:var(--ink); text-decoration:none; font-size:14px; font-weight:500; transition:all 0.2s ease; }
+    .card-button:hover { border-color:#374151; background:#111827; }
+    .card-button::after { content:"→"; font-size:16px; }
+
+    .navigation { background:#0b1220; border:1px solid #1f2937; border-radius:12px; padding:20px; text-align:center; }
+    .navigation h3 { margin:0 0 16px 0; font-size:16px; color:var(--ink); }
+    .nav-links { display:flex; justify-content:center; gap:12px; flex-wrap:wrap; }
+    .nav-link { padding:8px 16px; background:var(--panel); border:1px solid #1f2937; border-radius:8px; color:var(--muted); text-decoration:none; font-size:13px; transition:all 0.2s ease; }
+    .nav-link:hover { border-color:#374151; color:var(--ink); }
+
+    footer { margin-top:60px; padding:20px; text-align:center; color:var(--muted); font-size:12px; border-top:1px solid #1f2937; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Mini-Paint</h1>
+    <p>Comparación interactiva de algoritmos de dibujo de líneas</p>
+  </header>
+
+  <div class="container">
+    <div class="intro">
+      <h2>Explora diferentes algoritmos de rasterización</h2>
+      <p>
+        Cada algoritmo tiene sus propias características y ventajas. Utiliza las herramientas interactivas 
+        para dibujar líneas y observar cómo cada método rastreriza los píxeles de manera diferente.
+      </p>
+    </div>
+
+    <div class="algorithms">
+      <div class="card card-basic">
+        <div class="card-header">
+          <div class="card-number">1</div>
+          <h3 class="card-title">Algoritmo Básico</h3>
+        </div>
+        <p class="card-description">
+          Implementación simple que avanza por el eje con mayor diferencia y redondea el otro. 
+          Fácil de entender pero puede generar líneas desiguales.
+        </p>
+        <ul class="card-features">
+          <li>Usa operaciones de redondeo</li>
+          <li>Avanza por X o Y según la pendiente</li>
+          <li>Implementación directa</li>
+          <li>Bueno para aprender conceptos básicos</li>
+        </ul>
+        <a href="redondeo.html" class="card-button">Probar algoritmo</a>
+      </div>
+
+      <div class="card card-dda">
+        <div class="card-header">
+          <div class="card-number">2</div>
+          <h3 class="card-title">Algoritmo DDA</h3>
+        </div>
+        <p class="card-description">
+          Digital Differential Analyzer usa incrementos constantes para generar líneas uniformes. 
+          Evita divisiones por iteración y produce trazos consistentes.
+        </p>
+        <ul class="card-features">
+          <li>Incrementos constantes calculados una vez</li>
+          <li>Evita divisiones en cada paso</li>
+          <li>Trazo uniforme y predecible</li>
+          <li>Eficiente para hardware raster</li>
+        </ul>
+        <a href="DDA.html" class="card-button">Probar algoritmo</a>
+      </div>
+
+      <div class="card card-bresenham">
+        <div class="card-header">
+          <div class="card-number">3</div>
+          <h3 class="card-title">Algoritmo de Bresenham</h3>
+        </div>
+        <p class="card-description">
+          El algoritmo más eficiente, usa solo aritmética entera y un acumulador de error. 
+          Optimizado para todos los octantes y ampliamente usado en gráficos.
+        </p>
+        <ul class="card-features">
+          <li>Solo usa aritmética entera</li>
+          <li>Acumulador de error inteligente</li>
+          <li>Funciona en todos los octantes</li>
+          <li>Estándar en la industria</li>
+        </ul>
+        <a href="bresenham.html" class="card-button">Probar algoritmo</a>
+      </div>
+    </div>
+
+    <div class="navigation">
+      <h3>Navegación rápida</h3>
+      <div class="nav-links">
+        <a href="redondeo.html" class="nav-link">Básico</a>
+        <a href="DDA.html" class="nav-link">DDA</a>
+        <a href="bresenham.html" class="nav-link">Bresenham</a>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>Proyecto educativo para comparar algoritmos de dibujo de líneas • Usa los controles interactivos para experimentar</p>
+  </footer>
+</body>
+</html>

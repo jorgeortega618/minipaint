@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mini‑Paint (Algoritmo de Bresenham)</title>
+  <style>
+    :root { --bg:#0f172a; --panel:#111827; --ink:#e5e7eb; --muted:#94a3b8; --accent:#a78bfa; }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:var(--ink)}
+    header{padding:12px 16px;background:linear-gradient(180deg,#0b1220,#0f172a);border-bottom:1px solid #0b1220}
+    header h1{margin:0;font-size:16px;letter-spacing:.3px;font-weight:600}
+    .wrap{display:grid;grid-template-rows:auto 1fr auto;min-height:calc(100vh - 48px)}
+    .toolbar{display:flex;flex-wrap:wrap;gap:10px;padding:12px 16px;align-items:center;background:var(--panel);border-bottom:1px solid #0b1220}
+    .group{display:flex;gap:8px;align-items:center;padding:6px 10px;background:#0b1220;border:1px solid #0b1220;border-radius:10px}
+    .group label{font-size:12px;color:var(--muted)}
+    input,button,select{background:#0f172a;color:var(--ink);border:1px solid #1f2937;border-radius:8px;padding:6px 8px;font-size:13px}
+    input[type=number]{width:72px}
+    button{cursor:pointer}
+    button:hover{border-color:#334155}
+    .btn-accent{background:#271b55;border-color:#3b2b7a}
+    .btn-accent:hover{background:#33256b}
+    #stage{position:relative;display:grid;place-items:center;padding:12px}
+    canvas{background:#0a0f1c;border:1px solid #111827;border-radius:12px;width:100%;height:100%;max-width:1100px;max-height:640px;image-rendering:pixelated}
+    .help{color:var(--muted);font-size:12px;padding:8px 16px}
+    .badge{padding:2px 8px;border:1px solid #334155;border-radius:999px;color:#cbd5e1}
+    footer{padding:8px 16px;color:#9ca3af;font-size:12px;border-top:1px solid #0b1220;background:#0b1220}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Mini‑Paint — Algoritmo de Bresenham (enteros, todos los octantes)</h1>
+    <nav style="margin-top:12px;">
+      <a href="index.html" style="color:#94a3b8;text-decoration:none;margin-right:16px;font-size:13px;">← Inicio</a>
+      <span style="color:#475569;margin-right:16px;">|</span>
+      <a href="DDA.html" style="color:#94a3b8;text-decoration:none;margin-right:16px;font-size:13px;">← Anterior: DDA</a>
+    </nav>
+  </header>
+
+  <div class="wrap">
+    <div class="toolbar">
+      <div class="group">
+        <label for="color">Color</label>
+        <input type="color" id="color" value="#ffffff" />
+      </div>
+      <div class="group">
+        <label for="grosor">Grosor (px)</label>
+        <input type="number" id="grosor" min="1" max="9" step="1" value="1" />
+      </div>
+      <div class="group">
+        <label><input type="checkbox" id="cuadricula" /> Cuadrícula</label>
+        <label><input type="checkbox" id="marcadores" checked /> Puntos de control</label>
+      </div>
+      <div class="group">
+        <label><input type="checkbox" id="animar" /> Animar Bresenham</label>
+        <label for="vel">ms/paso</label>
+        <input type="number" id="vel" min="1" step="1" value="8" />
+      </div>
+      <div class="group">
+        <button id="btnLimpiar">Limpiar</button>
+        <button id="btnGuardar" class="btn-accent">Guardar PNG</button>
+      </div>
+      <span class="badge" id="estado">1) Clic: punto inicial · 2) Clic: punto final</span>
+    </div>
+
+    <div id="stage">
+      <canvas id="lienzo" width="1100" height="640" aria-label="Área de dibujo"></canvas>
+    </div>
+
+    <div class="help">
+      <strong>Bresenham</strong> selecciona, en cada paso, entre dos píxeles vecinos usando un acumulador de error entero.
+      Implementación generalizada (maneja todas las pendientes y direcciones) con la forma compacta:
+      <code>dx = |x1-x0|, sx = sgn(x1-x0), dy = -|y1-y0|, sy = sgn(y1-y0), err = dx + dy</code>;
+      en bucle: trazar, <code>e2 = 2*err</code>, si <code>e2 >= dy</code> avanza en x, si <code>e2 <= dx</code> avanza en y.
+    </div>
+
+    <footer>
+      Atajos: <kbd>G</kbd> cuadrícula · <kbd>C</kbd> limpiar. — Activa <em>Animar Bresenham</em> para ver el avance paso a paso.
+    </footer>
+  </div>
+
+  <script>
+    // ——— Setup base ———
+    const canvas = document.getElementById('lienzo');
+    const ctx = canvas.getContext('2d');
+    const colorEl = document.getElementById('color');
+    const grosorEl = document.getElementById('grosor');
+    const cuadriculaEl = document.getElementById('cuadricula');
+    const marcadoresEl = document.getElementById('marcadores');
+    const animarEl = document.getElementById('animar');
+    const velEl = document.getElementById('vel');
+    const btnLimpiar = document.getElementById('btnLimpiar');
+    const btnGuardar = document.getElementById('btnGuardar');
+    const estado = document.getElementById('estado');
+
+    function clearAll(){
+      ctx.fillStyle = '#0a0f1c';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      if (cuadriculaEl.checked) drawGrid();
+    }
+
+    function drawGrid(){
+      const step=20; ctx.save();
+      ctx.strokeStyle='rgba(148,163,184,0.15)'; ctx.lineWidth=1; ctx.beginPath();
+      for(let x=0;x<=canvas.width;x+=step){ctx.moveTo(x+0.5,0);ctx.lineTo(x+0.5,canvas.height)}
+      for(let y=0;y<=canvas.height;y+=step){ctx.moveTo(0,y+0.5);ctx.lineTo(canvas.width,y+0.5)}
+      ctx.stroke(); ctx.restore();
+    }
+
+    clearAll();
+
+    // ——— Utilidades ———
+    function putPixel(x,y,color,size=1){
+      ctx.fillStyle=color; const s=Math.max(1,size|0); const half=Math.floor(s/2);
+      ctx.fillRect((x|0)-half,(y|0)-half,s,s);
+    }
+
+    function drawMarker(x,y){
+      if(!marcadoresEl.checked) return;
+      ctx.save(); ctx.strokeStyle='#a78bfa'; ctx.fillStyle='rgba(167,139,250,.12)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.arc(x+0.5,y+0.5,4,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
+    }
+
+    // ——— Bresenham (generalizado, enteros, todos los octantes) ———
+    function buildLineBresenhamPoints(x0,y0,x1,y1){
+      const pts=[];
+      let dx = Math.abs(x1 - x0);
+      let sx = (x0 < x1) ? 1 : -1;
+      let dy = -Math.abs(y1 - y0);
+      let sy = (y0 < y1) ? 1 : -1;
+      let err = dx + dy; // Nota: dy es negativo
+
+      while (true) {
+        pts.push({x:x0, y:y0});
+        if (x0 === x1 && y0 === y1) break;
+        const e2 = err << 1; // 2*err
+        if (e2 >= dy) { err += dy; x0 += sx; }
+        if (e2 <= dx) { err += dx; y0 += sy; }
+      }
+      return pts;
+    }
+
+    function drawLineBresenham(x0,y0,x1,y1,color,size=1, animate=false, delay=8){
+      const pts = buildLineBresenhamPoints(x0,y0,x1,y1);
+      if(!animate){
+        for(const p of pts) putPixel(p.x,p.y,color,size);
+        return;
+      }
+      let i=0;
+      const id=setInterval(()=>{
+        const p=pts[i++];
+        if(p) putPixel(p.x,p.y,color,size);
+        if(i>=pts.length){ clearInterval(id); }
+      }, Math.max(1, delay|0));
+    }
+
+    // ——— Interacción ———
+    let start=null; // {x,y}
+
+    function canvasPos(evt){
+      const rect=canvas.getBoundingClientRect();
+      return { x: Math.floor(evt.clientX-rect.left), y: Math.floor(evt.clientY-rect.top) };
+    }
+
+    canvas.addEventListener('click',(e)=>{
+      const {x,y}=canvasPos(e);
+      if(!start){
+        start={x,y}; drawMarker(x,y);
+        estado.textContent=`Punto inicial: (${x}, ${y}). Ahora elige el punto final.`;
+      } else {
+        const end={x,y}; drawMarker(x,y);
+        drawLineBresenham(start.x,start.y,end.x,end.y, colorEl.value, parseInt(grosorEl.value,10), animarEl.checked, parseInt(velEl.value,10));
+        estado.textContent=`Línea Bresenham: (${start.x}, ${start.y}) → (${end.x}, ${end.y}). Clic para iniciar otra.`;
+        start=null;
+      }
+    });
+
+    // ——— UI ———
+    cuadriculaEl.addEventListener('change',()=>{ clearAll(); });
+    btnLimpiar.addEventListener('click',()=>{ clearAll(); start=null; estado.textContent='Lienzo limpio. Clic para punto inicial.'; });
+    btnGuardar.addEventListener('click',()=>{
+      const a=document.createElement('a'); a.download='mini-paint-bresenham.png'; a.href=canvas.toDataURL('image/png'); a.click();
+    });
+
+    // Atajos
+    window.addEventListener('keydown',(e)=>{
+      if(e.key.toLowerCase()==='g'){cuadriculaEl.checked=!cuadriculaEl.checked; clearAll();}
+      if(e.key.toLowerCase()==='c'){btnLimpiar.click();}
+    });
+  </script>
+</body>
+</html>
